@@ -5,11 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 )
 
 func main() {
 
 	csvFileName := flag.String("csv", "question.csv", "a csv file in a format of 'Q&A'")
+	timeLimit := flag.Int("limit", 30, "the time limit for the quiz in second")
+
 	flag.Parse()
 
 	file, err := os.Open(*csvFileName)
@@ -25,16 +29,33 @@ func main() {
 	}
 
 	question := parsLines(Lines)
+
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
+
 	correct := 0
-	for i, p := range question {
-		fmt.Printf("question #%d : %s\n", i+1, p.q)
-		var answer string
-		fmt.Scanf("%s\n", &answer)
-		if answer == p.a {
-			correct++
+
+	for i, v := range question {
+		fmt.Printf("question #%d : %s\n", i+1, v.q)
+		ch := make(chan string)
+		go func(ch chan string) {
+			var answer string
+			fmt.Scanf("%s\n", &answer)
+			ch <- answer
+
+		}(ch)
+
+		select {
+		case <-timer.C:
+			fmt.Printf("\nYour score is %d of %d\n", correct, len(question))
+			return
+		case answer := <-ch:
+			if answer == v.a {
+				correct++
+			}
 		}
+
 	}
-	fmt.Printf("Your score is %d of %d\n", correct, len(question))
+	fmt.Printf("\nYour score is %d of %d\n", correct, len(question))
 
 }
 
@@ -47,8 +68,8 @@ func parsLines(Lines [][]string) []questions {
 	ret := make([]questions, len(Lines))
 	for i, line := range Lines {
 		ret[i] = questions{
-			line[0],
-			line[1],
+			q: line[0],
+			a: strings.TrimSpace(line[1]),
 		}
 	}
 
