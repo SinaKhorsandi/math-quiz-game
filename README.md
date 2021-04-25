@@ -1,2 +1,2 @@
 #math-quiz-game
-This a simple real time quiz game with Golang
+This is a simple real time  math-quizgame using Golang
